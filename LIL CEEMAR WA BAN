@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>CEEMAR WA BAN - Real BAN TOOL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  body {
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    color: #0f0;
+    background: black;
+    overflow: hidden;
+  }
+  canvas#matrix {
+    position: fixed;
+    top: 0; left: 0;
+    z-index: 0;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    padding: 20px;
+  }
+  input, button, textarea {
+    background: black;
+    border: 1px solid #0f0;
+    color: #0f0;
+    padding: 5px;
+    margin: 5px 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  button {
+    cursor: pointer;
+  }
+  .hidden { display: none; }
+  #loading {
+    display: none;
+    color: yellow;
+    font-weight: bold;
+  }
+  ul#passwordList {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  ul#passwordList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #0f0;
+    padding: 5px 0;
+  }
+  ul#passwordList button {
+    width: auto;
+    padding: 2px 6px;
+    font-size: 12px;
+    border: 1px solid #f00;
+    background: black;
+    color: #f00;
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+  }
+  /* Center the mainApp title */
+  #mainApp h1 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div class="container" id="loginScreen">
+  <h2>Enter Access Password</h2>
+  <label for="userUsername">Username:</label>
+  <input type="text" id="userUsername" placeholder="Username" />
+  <label for="userPassword">Password:</label>
+  <input type="password" id="userPassword" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <br><br>
+  <button onclick="showAdminLogin()">Admin Login</button>
+</div>
+
+<div class="container hidden" id="adminLoginScreen">
+  <h2>Admin Login</h2>
+  <input type="password" id="adminPassword" placeholder="Admin Password" />
+  <button onclick="adminLogin()">Access Admin Panel</button>
+</div>
+
+<div class="container hidden" id="adminPanel">
+  <h2>Admin Panel</h2>
+  <h3>Manage Users (Username & Password)</h3>
+  <label for="newUsername">New Username:</label>
+  <input type="text" id="newUsername" placeholder="Username" />
+  <label for="newPassword">New Password:</label>
+  <input type="text" id="newPassword" placeholder="Password" />
+  <button onclick="addUser()">Add User</button>
+
+  <h3>Current Users:</h3>
+  <ul id="passwordList"></ul>
+
+  <button onclick="showLogin()">Back to Login</button>
+</div>
+
+<div class="container hidden" id="mainApp">
+  <h1>LIL CEEMAR WA BAN</h1>
+  <input type="text" id="targetNumber" placeholder="Enter Target WhatsApp Number" />
+  <textarea id="reason" placeholder="Reason (optional)"></textarea>
+  <button onclick="sendReport()">Send Ban Report</button>
+  <div id="loading">Sending report... Please wait</div>
+  <p>Developer Contact: <a href="https://wa.me/2348035877044" style="color:lime;">Click Here</a></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+  emailjs.init("Xwbn4H-aQiXJsqecx");
+
+  // Users now stored as objects with username and password
+  let users = [
+    { username: "user1", password: "1234" } // example default user
+  ];
+
+  const adminPass = "admin123";
+
+  function login() {
+    const username = document.getElementById('userUsername').value.trim();
+    const pass = document.getElementById('userPassword').value;
+
+    if (!username || !pass) {
+      alert("Please enter username and password");
+      return;
+    }
+
+    const userFound = users.find(u => u.username === username && u.password === pass);
+    if (userFound) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('mainApp').classList.remove('hidden');
+      clearLoginInputs();
+    } else {
+      alert("Wrong username or password");
+    }
+  }
+
+  function showAdminLogin() {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminLoginScreen').classList.remove('hidden');
+  }
+
+  function adminLogin() {
+    let pass = document.getElementById('adminPassword').value;
+    if (pass === adminPass) {
+      document.getElementById('adminLoginScreen').classList.add('hidden');
+      document.getElementById('adminPanel').classList.remove('hidden');
+      updatePasswordList();
+      document.getElementById('adminPassword').value = "";
+    } else {
+      alert("Wrong admin password");
+    }
+  }
+
+  function addUser() {
+    const newUser = document.getElementById('newUsername').value.trim();
+    const newPass = document.getElementById('newPassword').value.trim();
+
+    if (!newUser || !newPass) {
+      alert("Please enter both username and password");
+      return;
+    }
+    // Check if username exists already
+    if (users.some(u => u.username === newUser)) {
+      alert("Username already exists");
+      return;
+    }
+
+    users.push({ username: newUser, password: newPass });
+    updatePasswordList();
+
+    document.getElementById('newUsername').value = "";
+    document.getElementById('newPassword').value = "";
+  }
+
+  function removeUser(username) {
+    users = users.filter(u => u.username !== username);
+    updatePasswordList();
+  }
+
+  function updatePasswordList() {
+    let list = document.getElementById('passwordList');
+    list.innerHTML = "";
+    users.forEach(u => {
+      let li = document.createElement('li');
+      li.textContent = `${u.username} - ${u.password}`;
+
+      let removeBtn = document.createElement('button');
+      removeBtn.textContent = "Remove";
+      removeBtn.onclick = () => {
+        if (confirm(`Remove user "${u.username}"?`)) {
+          removeUser(u.username);
+        }
+      };
+
+      li.appendChild(removeBtn);
+      list.appendChild(li);
+    });
+  }
+
+  function showLogin() {
+    document.getElementById('adminPanel').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    clearLoginInputs();
+  }
+
+  function clearLoginInputs() {
+    document.getElementById('userUsername').value = "";
+    document.getElementById('userPassword').value = "";
+  }
+
+  function sendReport() {
+    let number = document.getElementById('targetNumber').value.trim();
+    let reason = document.getElementById('reason').value.trim();
+
+    if (!number) {
+      alert("Please enter a number");
+      return;
+    }
+    document.getElementById('loading').style.display = "block";
+    emailjs.send("service_na2ybic", "template_ooewspd", {
+      number: number,
+      reason: reason
+    }).then(() => {
+      document.getElementById('loading').style.display = "none";
+      alert("Report sent successfully");
+      document.getElementById('targetNumber').value = "";
+      document.getElementById('reason').value = "";
+    }).catch(() => {
+      document.getElementById('loading').style.display = "none";
+      alert("Error sending report");
+    });
+  }
+
+  // Matrix background effect
+  const canvas = document.getElementById('matrix');
+  const ctx = canvas.getContext('2d');
+
+  canvas.height = window.innerHeight;
+  canvas.width = window.innerWidth;
+
+  const letters = '0101010101';
+  const fontSize = 14;
+  const columns = canvas.width / fontSize;
+  const drops = Array(Math.floor(columns)).fill(1);
+
+  function draw() {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#0f0';
+    ctx.font = fontSize + 'px monospace';
+
+    for (let i = 0; i < drops.length; i++) {
+      const text = letters[Math.floor(Math.random() * letters.length)];
+      ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+      if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+        drops[i] = 0;
+      }
+      drops[i]++;
+    }
+  }
+
+  setInterval(draw, 33);
+
+  // Resize canvas on window resize
+  window.addEventListener('resize', () => {
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+  });
+</script>
+</body>
+</html>
